@@ -17,3 +17,5 @@ Scripts/*.ahk
 HeartBeat.ini
 Settings.ini
 usernames.txt
+Scripts/temp/friendCode.txt
+Scripts/temp/friendCount.txt
