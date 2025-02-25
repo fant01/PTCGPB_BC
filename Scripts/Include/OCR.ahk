@@ -463,3 +463,23 @@ WaitForAsync(ByRef Object)
    ObjRelease(Object)
    Object := ObjectResult
 }
+
+/*
+
+
+app := "C:\Capture2Text\Capture2Text_CLI.exe"
+out = %A_ScriptDir%\Scripts\temp\tmp_friendcode.txt
+RunWait, %app% --screen-rect "174 74 270 89" -o %out%,, Hide
+If FileExist(out) {
+    FileRead, friendCode, %out%
+    friendCode := RTrim(friendCode, "`r`n")
+}
+
+RunWait, %app% --screen-rect "174 74 270 89" -o %out%,, Hide
+If FileExist(out) {
+    FileRead, friendCode, %out%
+    friendCode := RTrim(friendCode, "`r`n")
+}
+
+
+*/
