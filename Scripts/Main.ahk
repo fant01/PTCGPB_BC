@@ -1,7 +1,8 @@
 #Include %A_ScriptDir%\Include\Gdip_All.ahk
 #Include %A_ScriptDir%\Include\Gdip_Imagesearch.ahk
-#Include %A_ScriptDir%\Include\ParseScreen.ahk
+
 #Include %A_ScriptDir%\Include\StringCompare.ahk
+#Include %A_ScriptDir%\Include\OCR.ahk
 
 #SingleInstance on
 ;SetKeyDelay, -1, -1
@@ -987,6 +988,52 @@ IsLeapYear(year) {
 ; Screenshot()
 ; return
 
+GetTextFromInstance(name, x, y, width, height, resizePercent := 800)
+{
+	if(name && name != "") {
+		WinGetPos, cur_x, cur_y, cur_w, cur_h, %name%
+		newX := x + cur_x
+		newY := y + cur_y
+		;hBitmap := HBitmapFromScreen(newX, newY, width, height)
+		;pIRandomAccessStream := HBitmapToRandomAccessStream(hBitmap)
+		;DllCall("DeleteObject", "Ptr", hBitmap)
+		;text := ocr(pIRandomAccessStream, "en")
+		;DllCall("DeleteObject", "Ptr", pIRandomAccessStream)
+		pBitmap := Gdip_BitmapFromScreen(newX "|" newY "|" width "|" height)
+		pBitmap := Gdip_ResizeBitmap(pBitmap, resizePercent, true)
+		; ret := Gdip_SaveBitmapToFile(pBitmap, "out.png")
+		hBitmap := Gdip_CreateHBITMAPFromBitmap(pBitmap)
+		pIRandomAccessStream := HBitmapToRandomAccessStream(hBitmap)
+		DllCall("DeleteObject", "Ptr", hBitmap)
+		Gdip_DisposeImage(pBitmap)
+		text := ocr(pIRandomAccessStream, "en-US")
+		return text
+	}
+
+	return ""
+}
+
+Gdip_ResizeBitmap(pBitmap, PercentOrWH, Dispose=1) {   ; returns resized bitmap. By Learning one.
+	; http://www.autohotkey.com/forum/post-477333.html#477333
+   Gdip_GetImageDimensions(pBitmap, origW, origH)
+   if PercentOrWH contains w,h
+   {
+      RegExMatch(PercentOrWH, "i)w(\d*)", w), RegExMatch(PercentOrWH, "i)h(\d*)", h)
+      NewWidth := w1, NewHeight := h1
+      NewWidth := (NewWidth = "") ? origW/(origH/NewHeight) : NewWidth
+      NewHeight := (NewHeight = "") ? origH/(origW/NewWidth) : NewHeight
+   }
+   else
+   NewWidth := origW*PercentOrWH/100, NewHeight := origH*PercentOrWH/100      
+   pBitmap2 := Gdip_CreateBitmap(NewWidth, NewHeight)
+   G2 := Gdip_GraphicsFromImage(pBitmap2), Gdip_SetSmoothingMode(G2, 4), Gdip_SetInterpolationMode(G2, 7)
+   Gdip_DrawImage(G2, pBitmap, 0, 0, NewWidth, NewHeight)
+   Gdip_DeleteGraphics(G2)
+   if Dispose
+      Gdip_DisposeImage(pBitmap)
+   return pBitmap2
+}
+
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; ~~~ hoytdj Everying Below ~~~
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1005,28 +1052,30 @@ HoytdjTestScript() {
 GetCurrentFriendCount()
 {
 	global winTitle
-	WinGetPos, x, y, w, h, %winTitle%
+	
     ; Parse friendCount status from screen
     ; Expected output something like "Number of friends 42/99"
-    friendCount := GetTextFromScreen(24 + x, 110 + y, 145, 20, "friendCount")
+    friendCount := GetTextFromInstance(winTitle, 127, 108, 37, 22)
     ; Remove "Number of friends", everything after "/", and trim spaces
     friendCount := RegExReplace(RegExReplace(Trim(friendCount, " `t`r`n"), "^Number of friends\s*"), "\s*/.*$") + 0
-    Return friendCount
+	Delay(3)
+    return friendCount
 }
 
-GetFriendCode()
+GetFriendCode(blowUp := 2500)
 {
 	global winTitle
-	WinGetPos, x, y, w, h, %winTitle%
+	
     ; Parse friendCode status from screen
     ; Expected output something like "1234-5678-1234-5678"
 	GUI, Toolbar: Hide
 	GUI, StatusMessage: Hide
-    friendCode := GetTextFromScreen(172 + x, 73 + y, 100, 20, "friendCode")
+    friendCode := GetTextFromInstance(winTitle, 174, 75, 98, 13, blowUp)
 	GUI, Toolbar: Show, NoActivate
 	GUI, StatusMessage: Show, NoActivate
     friendCode := RegExReplace(Trim(friendCode, " `t`r`n"), "\D")
-    Return friendCode
+	Delay(3)
+    return friendCode
 }
 
 IsVipId(inputString, vipIdsArray, ByRef matchedId)
@@ -1140,7 +1189,8 @@ RemoveNonVipFriends() {
 			failSafe := A_TickCount
 			failSafeTime := 0
 			Loop {
-				friendCode := GetFriendCode()
+				blowUp := [2500, 2500, 2500, 500, 4000, 200]
+				friendCode := GetFriendCode(blowUp[A_Index])
 				if (RegExMatch(friendCode, "^\d{14,17}$")) {
 					break
 				}
@@ -1163,7 +1213,7 @@ RemoveNonVipFriends() {
 				adbClick(143, 507)
 				return
 			}
-			if (IsVipId(friendCode, vipIdsArray, matchedId)) {
+			if (true || IsVipId(friendCode, vipIdsArray, matchedId)) {
 				; If it's a VIP friend, skip removal
 				CreateStatusMessage("Parsed friend code: " . friendCode . "`nMatched friend code: " . matchedId . "`nSkipping VIP...")
 				Delay(4) ; DEBUG
