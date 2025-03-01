@@ -5,11 +5,8 @@
 #Include *i %A_ScriptDir%\Include\OCR.ahk
 
 #SingleInstance on
-;SetKeyDelay, -1, -1
 SetMouseDelay, -1
 SetDefaultMouseSpeed, 0
-;SetWinDelay, -1
-;SetControlDelay, -1
 SetBatchLines, -1
 SetTitleMatchMode, 3
 CoordMode, Pixel, Screen
@@ -40,7 +37,6 @@ IniRead, discordUserId, %A_ScriptDir%\..\Settings.ini, UserSettings, discordUser
 IniRead, Columns, %A_ScriptDir%\..\Settings.ini, UserSettings, Columns, 5
 IniRead, godPack, %A_ScriptDir%\..\Settings.ini, UserSettings, godPack, Continue
 IniRead, Instances, %A_ScriptDir%\..\Settings.ini, UserSettings, Instances, 1
-;IniRead, setSpeed, %A_ScriptDir%\..\Settings.ini, UserSettings, setSpeed, 1x/3x
 IniRead, defaultLanguage, %A_ScriptDir%\..\Settings.ini, UserSettings, defaultLanguage, Scale125
 IniRead, SelectedMonitorIndex, %A_ScriptDir%\..\Settings.ini, UserSettings, SelectedMonitorIndex, 1
 IniRead, swipeSpeed, %A_ScriptDir%\..\Settings.ini, UserSettings, swipeSpeed, 300
@@ -59,29 +55,26 @@ IniRead, ImmersiveCheck, %A_ScriptDir%\..\Settings.ini, UserSettings, ImmersiveC
 IniRead, PseudoGodPack, %A_ScriptDir%\..\Settings.ini, UserSettings, PseudoGodPack, 0
 IniRead, minStars, %A_ScriptDir%\..\Settings.ini, UserSettings, minStars, 0
 IniRead, Palkia, %A_ScriptDir%\..\Settings.ini, UserSettings, Palkia, 0
-IniRead, Dialga, %A_ScriptDir%\..\Settings.ini, UserSettings, Dialga, 1
+IniRead, Dialga, %A_ScriptDir%\..\Settings.ini, UserSettings, Dialga, 0
+IniRead, Arceus, %A_ScriptDir%\..\Settings.ini, UserSettings, Arceus, 1
 IniRead, Mew, %A_ScriptDir%\..\Settings.ini, UserSettings, Mew, 0
 IniRead, Pikachu, %A_ScriptDir%\..\Settings.ini, UserSettings, Pikachu, 0
 IniRead, Charizard, %A_ScriptDir%\..\Settings.ini, UserSettings, Charizard, 0
 IniRead, Mewtwo, %A_ScriptDir%\..\Settings.ini, UserSettings, Mewtwo, 0
 IniRead, slowMotion, %A_ScriptDir%\..\Settings.ini, UserSettings, slowMotion, 0
-
 IniRead, DeadCheck, %A_ScriptDir%\%scriptName%.ini, UserSettings, DeadCheck, 0
 
-packArray :=[]
 
-if(Palkia)
-	packArray.push("Palkia")
-if(Dialga)
-	packArray.push("Dialga")
-if(Mew)
-	packArray.push("Mew")
-if(Pikachu)
-	packArray.push("Pikachu")
-if(Charizard)
-	packArray.push("Charizard")
-if(Mewtwo)
-	packArray.push("Mewtwo")
+pokemonList := ["Palkia", "Dialga", "Mew", "Pikachu", "Charizard", "Mewtwo", "Arceus"]
+
+packArray := []  ; Initialize an empty array
+
+Loop, % pokemonList.MaxIndex()  ; Loop through the array
+{
+    pokemon := pokemonList[A_Index]  ; Get the variable name as a string
+    if (%pokemon%)  ; Dereference the variable using %pokemon%
+        packArray.push(pokemon)  ; Add the name to packArray
+}
 
 changeDate := getChangeDateTime() ; get server reset time
 
@@ -104,9 +97,7 @@ if(!adbPort) {
 }
 
 ; connect adb
-instanceSleep := scriptName * 1000
-Sleep, %instanceSleep%
-
+Sleep, % scriptName * 1000
 ; Attempt to connect to ADB
 ConnectAdb()
 
@@ -989,11 +980,8 @@ restartGameInstance(reason, RL := true){
 	if(!RL || RL != "GodPack") {
 		adbShell.StdIn.WriteLine("am force-stop jp.pokemon.pokemontcgp")
 		waitadb()
-		if(!RL) {
-			if(DeadCheck==0)
-				adbShell.StdIn.WriteLine("rm /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml") ; delete account data
-		}
-		;adbShell.StdIn.WriteLine("rm -rf /data/data/jp.pokemon.pokemontcgp/cache/*") ; clear cache
+		if(!RL && DeadCheck==0)
+			adbShell.StdIn.WriteLine("rm /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml") ; delete account data
 		waitadb()
 		adbShell.StdIn.WriteLine("am start -n jp.pokemon.pokemontcgp/com.unity3d.player.UnityPlayerActivity")
 		waitadb()
@@ -1467,7 +1455,6 @@ loadAccount() {
 	Sleep, 500
 
 	adbShell.StdIn.WriteLine("cp /sdcard/deviceAccount.xml /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml")
-
 	waitadb()
 	adbShell.StdIn.WriteLine("rm /sdcard/deviceAccount.xml")
 	waitadb()
@@ -1511,12 +1498,8 @@ saveAccount(file := "Valid") {
 	Loop {
 		CreateStatusMessage("Attempting to save account XML. " . count . "/10")
 
-		adbShell.StdIn.WriteLine("rm /sdcard/deviceAccount.xml")
-
-		Sleep, 500
-
 		adbShell.StdIn.WriteLine("cp /data/data/jp.pokemon.pokemontcgp/shared_prefs/deviceAccount:.xml /sdcard/deviceAccount.xml")
-
+		waitadb()
 		Sleep, 500
 
 		RunWait, % adbPath . " -s 127.0.0.1:" . adbPort . " pull /sdcard/deviceAccount.xml """ . filePath,, Hide
@@ -1658,10 +1641,12 @@ Screenshot(filename := "Valid") {
 
 	; File path for saving the screenshot locally
 	screenshotFile := screenshotsDir "\" . A_Now . "_" . winTitle . "_" . filename . "_" . packs . "_packs.png"
+	;pBitmap := from_window(WinExist(winTitle))
+	pBitmap := Gdip_CloneBitmapArea(from_window(WinExist(winTitle)), 18, 175, 240, 227)
 
-	pBitmap := from_window(WinExist(winTitle))
 	Gdip_SaveBitmapToFile(pBitmap, screenshotFile)
 
+	Gdip_DisposeImage(pBitmap)
 	return screenshotFile
 }
 
@@ -1965,11 +1950,11 @@ initializeAdbShell() {
 					throw "Failed to start ADB shell."
 				}
 
-				adbShell.StdIn.WriteLine("su")
-				adbShell.StdIn.WriteLine("whoami")
+				adbShell.StdIn.WriteLine("su -c ""whoami && sh""")
+				Delay(2)
 				output := adbShell.StdOut.ReadLine()
 				if (output != "root") {
-					MsgBox, "Failed to gain root access. Verify your settings"
+					MsgBox, "Failed to gain root access."
 					ExitApp
 				}
 			}
@@ -2551,25 +2536,27 @@ SelectPack(HG := false) {
 	packy := 196
 	if(openPack = "Mew") {
 		packx := 80
-	} else if(openPack = "Palkia") {
-		packx := 200
-	} else if(openPack = "Dialga") {
+	} else if(openPack = "Arceus") {
 		packx := 145
 	} else {
 		packx := 200
 	}
 	FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy)
 	if(openPack = "Pikachu" || openPack = "Mewtwo" || openPack = "Charizard") {
-		packy := 440
+		packy := 442
 		if(openPack = "Pikachu"){
-			packx := 125
+			packx := 264
 		} else if(openPack = "Mewtwo"){
-			packx := 65
+			packx := 206
 		} else if(openPack = "Charizard"){
-			packx := 26
+			packx := 180
 		}
 		FindImageAndClick(115, 140, 160, 155, , "SelectExpansion", 245, 475)
 		FindImageAndClick(233, 400, 264, 428, , "Points", packx, packy)
+	} else if(openPack = "Palkia") {
+		Delay(2)
+		adbClick(245, 245) ;temp
+		Delay(2)
 	}
 	if(HG = "Tutorial") {
 		FindImageAndClick(236, 198, 266, 226, , "Hourglass2", 180, 436, 500) ;stop at hourglasses tutorial 2 180 to 203?
@@ -2598,7 +2585,7 @@ SelectPack(HG := false) {
 			CreateStatusMessage("In failsafe for HourglassPack4. " . failSafeTime "/45 seconds")
 		}
 	}
-	if(HG != "Tutorial")
+	;if(HG != "Tutorial")
 		failSafe := A_TickCount
 		failSafeTime := 0
 		Loop {
@@ -2848,17 +2835,19 @@ createAccountList(instance) {
 	if FileExist(outputTxt) {
 		FileGetTime, fileTime, %outputTxt%, M  ; Get last modified time
 		timeDiff := A_Now - fileTime  ; Calculate time difference
-
 		if (timeDiff > 86400)  ; 24 hours in seconds (60 * 60 * 24)
 			FileDelete, %outputTxt%
 	}
-	if (!FileExist(outputTxt))
+	if (!FileExist(outputTxt)) {
 		Loop, %saveDir%\*.xml {
-			xml := saveDir . "\" A_LoopFileName . ".xml"
+			xml := saveDir . "\" . A_LoopFileName
 			FileGetTime, fileTime, %xml%, M
-			if (timeDiff > 86400)  ; 24 hours in seconds (60 * 60 * 24)
-				FileAppend, % A_LoopFileName "`n", %outputTxt%  ; Append file path to output.txt
+			timeDiff := A_Now - fileTime  ; Calculate time difference
+			if (timeDiff > 86400) {  ; 24 hours in seconds (60 * 60 * 24) 
+				FileAppend, % A_LoopFileName "`n", %outputTxt%  ; Append file path to output.txt\
+			}
 		}
+	}
 }
 
 DoWonderPick() {
@@ -2988,8 +2977,11 @@ getChangeDateTime() {
 	Return FormattedTime
 }
 
-; ^e::
-; msgbox ss
-; pToken := Gdip_Startup()
-; Screenshot()
-; return
+
+/*
+^e::
+	msgbox ss
+	pToken := Gdip_Startup()
+	Screenshot()
+return
+*/
