@@ -1310,8 +1310,8 @@ FoundStars(star) {
 	CreateStatusMessage(logMessage)
 	LogToFile(logMessage, "GPlog.txt")
 	LogToDiscord(logMessage, screenShot, discordUserId, "", fcScreenshot)
-	if(star != "Crown" && star != "Immersive")
-		ChooseTag()
+	; if(star != "Crown" && star != "Immersive")
+	; 	ChooseTag()
 }
 
 FindBorders(prefix) {
@@ -1457,7 +1457,7 @@ GodPackFound(validity) {
 	; Adjust the below to only send a 'ping' to Discord friends on Valid packs
 	if(validity = "Valid") {
 		LogToDiscord(logMessage, screenShot, discordUserId, "", fcScreenshot)
-		ChooseTag()
+		; ChooseTag()
 	} else {
 		LogToDiscord(logMessage, screenShot)
 	}
