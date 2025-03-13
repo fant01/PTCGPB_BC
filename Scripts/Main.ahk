@@ -163,10 +163,14 @@ Loop {
 					done := true
 					break
 				} else if(FindOrLoseImage(80, 170, 120, 195, , "player", 0, failSafeTime)) {
+					if (GPTest)
+						break
 					Sleep, %Delay%
 					adbClick(210, 210)
 					Sleep, 1000
 				} else if(FindOrLoseImage(225, 195, 250, 220, , "Pending", 0, failSafeTime)) {
+					if (GPTest)
+						break
 					adbClick(245, 210)
 				} else if(FindOrLoseImage(186, 496, 206, 518, , "Accept", 0, failSafeTime)) {
 					done := true
@@ -185,7 +189,7 @@ Loop {
 				CreateStatusMessage("Failsafe " . failSafeTime "/180 seconds")
 			}
 		}
-		if(done || fullList|| GPTest)
+		if(done || fullList || GPTest)
 			break
 	}
 }
@@ -679,7 +683,7 @@ ToggleTestScript()
 			firstRun := True
 			testStartTime := ""
 		}
-		CreateStatusMessage("Exiting GP Test Mode")		
+		CreateStatusMessage("Exiting GP Test Mode")
 	}
 }
 
