@@ -50,6 +50,7 @@ if(heartBeat)
 	IniWrite, 1, %A_ScriptDir%\..\HeartBeat.ini, HeartBeat, Main
 IniRead, vipIdsURL, %A_ScriptDir%\..\Settings.ini, UserSettings, vipIdsURL
 IniRead, ocrLanguage, %A_ScriptDir%\..\Settings.ini, UserSettings, ocrLanguage, en
+IniRead, clientLanguage, %A_ScriptDir%\..\Settings.ini, UserSettings, clientLanguage, en
 
 adbPort := findAdbPorts(folderPath)
 
@@ -128,6 +129,22 @@ if(heartBeat)
 	IniWrite, 1, %A_ScriptDir%\..\HeartBeat.ini, HeartBeat, Main
 FindImageAndClick(120, 500, 155, 530, , "Social", 143, 518, 1000, 150)
 firstRun := true
+
+global 99Configs := {}
+99Configs["en"] := {leftx: 123, rightx: 162}
+99Configs["es"] := {leftx: 68, rightx: 107}
+99Configs["fr"] := {leftx: 56, rightx: 95}
+99Configs["de"] := {leftx: 72, rightx: 111}
+99Configs["it"] := {leftx: 60, rightx: 99}
+99Configs["pt"] := {leftx: 127, rightx: 166}
+99Configs["jp"] := {leftx: 84, rightx: 127}
+99Configs["ko"] := {leftx: 65, rightx: 100}
+99Configs["cn"] := {leftx: 63, rightx: 102}
+
+99Path := "99" . clientLanguage
+99Leftx := 99Configs[clientLanguage].leftx
+99Rightx := 99Configs[clientLanguage].rightx
+
 Loop {
 	; hoytdj Add + 6
 	if (GPTest) {
@@ -159,7 +176,7 @@ Loop {
 			Loop {
 				Sleep, %Delay%
 				clickButton := FindOrLoseImage(75, 340, 195, 530, 80, "Button", 0, failSafeTime) ;looking for ok button in case an invite is withdrawn
-				if(FindOrLoseImage(123, 110, 162, 127, , "99", 0, failSafeTime)) {
+				if(FindOrLoseImage(99Leftx, 110, 99Rightx, 127, , 99Path, 0, failSafeTime)) {
 					done := true
 					break
 				} else if(FindOrLoseImage(80, 170, 120, 195, , "player", 0, failSafeTime)) {
@@ -387,11 +404,15 @@ resetWindows(){
 			SelectedMonitorIndex := RegExReplace(SelectedMonitorIndex, ":.*$")
 			SysGet, Monitor, Monitor, %SelectedMonitorIndex%
 			Title := winTitle
-			rowHeight := 533  ; Adjust the height of each row
-			currentRow := Floor((1 - 1) / Columns)
-			y := currentRow * rowHeight
-			x := Mod((1 - 1), Columns) * scaleParam
 
+			instanceIndex := StrReplace(Title, "Main", "")
+			if (instanceIndex = "")
+				instanceIndex := 1
+
+			rowHeight := 533  ; Adjust the height of each row
+			currentRow := Floor((instanceIndex - 1) / Columns)
+			y := currentRow * rowHeight
+			x := Mod((instanceIndex - 1), Columns) * scaleParam
 			WinMove, %Title%, , % (MonitorLeft + x), % (MonitorTop + y), scaleParam, 537
 			break
 		}
@@ -679,7 +700,7 @@ ToggleTestScript()
 			firstRun := True
 			testStartTime := ""
 		}
-		CreateStatusMessage("Exiting GP Test Mode")		
+		CreateStatusMessage("Exiting GP Test Mode")
 	}
 }
 
@@ -1158,7 +1179,7 @@ RemoveNonVipFriends() {
 					CreateStatusMessage("Couldn't parse friend. Skipping friend...`nParsed friend: " . friendAccount.ToString())
 					LogToFile("Friend skipped: " . friendAccount.ToString() . ". Couldn't parse identifiers.", "GPTestLog.txt")
 				}
-				; If it's a VIP friend, skip removal	
+				; If it's a VIP friend, skip removal
 				if (isVipResult)
 					CreateStatusMessage("Parsed friend: " . friendAccount.ToString() . "`nMatched VIP: " . matchedFriend.ToString() . "`nSkipping VIP...")
 				Sleep, 1500 ; Time to read
@@ -1344,14 +1365,14 @@ ParseFriendAccounts(filePath, ByRef includesIdsAndNames) {
 		line := A_LoopField
 		if (line = "" || line ~= "^\s*$")  ; Skip empty lines
 			continue
-		
+
 		friendCode := ""
 		friendName := ""
 		twoStarCount := ""
 
 		if InStr(line, " | ") {
 			parts := StrSplit(line, " | ") ; Split by " | "
-			
+
 			; Check for ID and Name parts
 			friendCode := Trim(parts[1])
 			friendName := Trim(parts[2])
@@ -1399,14 +1420,14 @@ IsFriendAccountInList(inputFriend, friendList, ByRef matchedFriend) {
 
 IsRecentlyCheckedAccount(inputFriend, ByRef friendList) {
 	if (inputFriend == "") {
-		return false	
+		return false
 	}
-	
+
 	; Check if the account is already in the list
 	if (IsFriendAccountInList(inputFriend, friendList, matchedFriend)) {
 		return true
 	}
-	
+
 	; Add the account to the end of the list
 	friendList.Push(inputFriend)
 
